@@ -13,25 +13,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.quarkiverse.mcp.server.*;
+import io.quarkus.runtime.Startup;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.quarkiverse.mcp.server.McpLog;
-import io.quarkiverse.mcp.server.Prompt;
-import io.quarkiverse.mcp.server.PromptArg;
-import io.quarkiverse.mcp.server.PromptMessage;
-import io.quarkiverse.mcp.server.TextContent;
-import io.quarkiverse.mcp.server.Tool;
-import io.quarkiverse.mcp.server.ToolArg;
-import io.quarkiverse.mcp.server.ToolCallException;
-
 public class MCPServerJDBC {
 
     @Inject
     ObjectMapper mapper;
+
+    @Inject
+    ToolManager toolManager;
 
     @ConfigProperty(name = "jdbc.url")
     String jdbcUrl;
@@ -41,6 +37,9 @@ public class MCPServerJDBC {
 
     @ConfigProperty(name = "jdbc.password")
     Optional<String> jdbcPassword;
+
+    @ConfigProperty(name = "enable.write.sql")
+    Optional<Boolean> enableWriteSql;
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(jdbcUrl, jdbcUser.orElse(null), jdbcPassword.orElse(null));
@@ -74,7 +73,22 @@ public class MCPServerJDBC {
         }
     }
 
-    @Tool(description = "Execute a INSERT, UPDATE or DELETE query on the jdbc database")
+    @Startup
+    void addTools() {
+        if (enableWriteSql.orElse(false)) {
+            toolManager.newTool("write_query").setDescription("Execute a INSERT, UPDATE or DELETE query on the jdbc database")
+                    .addArgument("query", "INSERT, UPDATE or DELETE SQL query to execute", true, String.class)
+                    .setHandler(ta -> ToolResponse.success(write_query(ta.args().get("query").toString())))
+                    .register();
+
+            toolManager.newTool("create_table").setDescription("Create new table in the jdbc database")
+                .addArgument("query", "CREATE TABLE SQL statement", true, String.class)
+                .setHandler(ta -> ToolResponse.success(create_table(ta.args().get("query").toString())))
+                .register();
+        }
+    }
+
+//    @Tool(description = "Execute a INSERT, UPDATE or DELETE query on the jdbc database")
     String write_query(@ToolArg(description = "INSERT, UPDATE or DELETE SQL query to execute") String query) {
         if (query.strip().toUpperCase().startsWith("SELECT")) {
             throw new ToolCallException("SELECT queries are not allowed for write_query", null);
@@ -111,7 +125,7 @@ public class MCPServerJDBC {
         }
     }
 
-    @Tool(description = "Create new table in the jdbc database")
+//    @Tool(description = "Create new table in the jdbc database")
     String create_table(@ToolArg(description = "CREATE TABLE SQL statement") String query) {
         if (!query.strip().toUpperCase().startsWith("CREATE TABLE")) {
             throw new ToolCallException("Only CREATE TABLE statements are allowed", null);
