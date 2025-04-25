@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.quarkiverse.mcp.server.*;
+import io.quarkus.logging.Log;
 import io.quarkus.runtime.Startup;
 import jakarta.inject.Inject;
 
@@ -40,6 +41,38 @@ public class MCPServerJDBC {
 
     @ConfigProperty(name = "enable.write.sql")
     Optional<Boolean> enableWriteSql;
+
+    @Startup
+    void registerDriver() {
+        try {
+            // MariaDB
+            Class.forName("org.mariadb.jdbc.Driver");
+            // MySQL
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            // PostgreSQL
+            Class.forName("org.postgresql.Driver");
+            // Oracle
+            Class.forName("oracle.jdbc.OracleDriver");
+            // Microsoft SQL Server
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            // SAP HANA
+            Class.forName("com.sap.db.jdbc.Driver");
+            // IBM Informix
+            Class.forName("com.informix.jdbc.IfxDriver");
+            // Firebird
+            Class.forName("org.firebirdsql.jdbc.FBDriver");
+            // HSQLDB
+            Class.forName("org.hsqldb.jdbc.JDBCDriver");
+            // H2
+            Class.forName("org.h2.Driver");
+            // Apache Derby
+            Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+            // SQLite
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Failed to register JDBC driver: " + e.getMessage(), e);
+        }
+    }
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(jdbcUrl, jdbcUser.orElse(null), jdbcPassword.orElse(null));
