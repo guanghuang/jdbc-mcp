@@ -16,6 +16,7 @@ import java.util.Optional;
 import io.quarkiverse.mcp.server.*;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.Startup;
+import io.vertx.core.http.HttpServerRequest;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -23,21 +24,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class MCPServerJDBC {
+    @Inject
+    HttpServerRequest request;
 
     @Inject
     ObjectMapper mapper;
 
     @Inject
     ToolManager toolManager;
-
-    @ConfigProperty(name = "jdbc.url")
-    String jdbcUrl;
-
-    @ConfigProperty(name = "jdbc.user")
-    Optional<String> jdbcUser;
-
-    @ConfigProperty(name = "jdbc.password")
-    Optional<String> jdbcPassword;
 
     @ConfigProperty(name = "enable.write.sql")
     Optional<Boolean> enableWriteSql;
@@ -75,7 +69,7 @@ public class MCPServerJDBC {
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(jdbcUrl, jdbcUser.orElse(null), jdbcPassword.orElse(null));
+        return DriverManager.getConnection(request.getHeader("x-jdbc-url"), request.getHeader("x-jdbc-user"), request.getHeader("x-jdbc-password"));
     }
 
     @Tool(description = "Execute a SELECT query on the jdbc database")
