@@ -69,7 +69,10 @@ public class MCPServerJDBC {
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(request.getHeader("x-jdbc-url"), request.getHeader("x-jdbc-user"), request.getHeader("x-jdbc-password"));
+        var parameters = HttpHeaderParameterHelper.getHeaderParameters(request, new String[] {
+                "x-jdbc-url", "x-jdbc-user", "x-jdbc-password"
+        });
+        return DriverManager.getConnection(parameters[0], parameters[1], parameters[2]);
     }
 
     @Tool(description = "Execute a SELECT query on the jdbc database")
